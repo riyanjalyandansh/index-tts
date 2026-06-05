@@ -306,7 +306,7 @@ with gr.Blocks(title="Riyanjaly & Ansh Media Voice Studio", theme=theme, css=APP
                     with gr.Tab("Voice Library"):
                         voice_library = gr.Dropdown(label="Select Default Voice", choices=get_voice_choices(), value="Leo", interactive=True)
                         library_preview = gr.Audio(label="Voice Preview", interactive=False, value=get_voices_map().get("Leo"))
-                    with gr.Tab("➕ Custom Voice"):
+                    with gr.Tab("➕ Custom Voice", visible=False) as custom_voice_tab:
                         prompt_audio = gr.Audio(label="Upload Audio File", key="prompt_audio",
                                                 sources=["upload", "microphone"], type="filepath")
                 
@@ -492,9 +492,9 @@ with gr.Blocks(title="Riyanjaly & Ansh Media Voice Studio", theme=theme, css=APP
     secret_state = gr.State(value=False)
     def toggle_secret(is_visible):
         new_state = not is_visible
-        return new_state, gr.update(visible=new_state)
+        return new_state, gr.update(visible=new_state), gr.update(visible=new_state)
     
-    secret_btn.click(toggle_secret, inputs=[secret_state], outputs=[secret_state, secret_settings_group])
+    secret_btn.click(toggle_secret, inputs=[secret_state], outputs=[secret_state, secret_settings_group, custom_voice_tab])
 
 def start_cloudflare_tunnel(token):
     import sys
