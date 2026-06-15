@@ -144,9 +144,13 @@ custom_head = f"""
       const btn = document.querySelector('#secret_btn');
       if (btn) btn.click();
     }}
+    if (event.altKey && event.code === 'KeyX') {{
+      const btn = document.querySelector('#custom_voice_btn');
+      if (btn) btn.click();
+    }}
   }});
 </script>
-<style>#secret_btn {{ display: none !important; }}</style>
+<style>#secret_btn, #custom_voice_btn {{ display: none !important; }}</style>
 """
 
 # Languages and choices
@@ -320,6 +324,7 @@ with gr.Blocks(title="Riyanjaly & Ansh Media Voice Studio", theme=theme, css=APP
                                        interactive=True, variant="primary", elem_id="primary_gen")
 
         secret_btn = gr.Button("Secret", elem_id="secret_btn")
+        custom_voice_btn = gr.Button("Custom Voice", elem_id="custom_voice_btn")
         with gr.Column(visible=False) as secret_settings_group:
             experimental_checkbox = gr.Checkbox(label=i18n("显示实验功能"), value=False)
 
@@ -492,9 +497,16 @@ with gr.Blocks(title="Riyanjaly & Ansh Media Voice Studio", theme=theme, css=APP
     secret_state = gr.State(value=False)
     def toggle_secret(is_visible):
         new_state = not is_visible
-        return new_state, gr.update(visible=new_state), gr.update(visible=new_state)
+        return new_state, gr.update(visible=new_state)
     
-    secret_btn.click(toggle_secret, inputs=[secret_state], outputs=[secret_state, secret_settings_group, custom_voice_tab])
+    secret_btn.click(toggle_secret, inputs=[secret_state], outputs=[secret_state, secret_settings_group])
+
+    cv_state = gr.State(value=False)
+    def toggle_cv(is_visible):
+        new_state = not is_visible
+        return new_state, gr.update(visible=new_state)
+    
+    custom_voice_btn.click(toggle_cv, inputs=[cv_state], outputs=[cv_state, custom_voice_tab])
 
 def start_cloudflare_tunnel(token):
     import sys
