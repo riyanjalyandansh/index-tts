@@ -508,50 +508,25 @@ with gr.Blocks(title="Riyanjaly & Ansh Media Voice Studio", theme=theme, css=APP
     
     custom_voice_btn.click(toggle_cv, inputs=[cv_state], outputs=[cv_state, custom_voice_tab])
 
-def start_trycloudflare_tunnel(port):
+def start_cloudflare_tunnel(token):
     import sys
     import platform
     import urllib.request
-    import re
-    import time
-    import threading
-
-    def _tunnel_thread():
-        if not os.path.exists("cloudflared"):
-            print("Downloading cloudflared...")
-            if sys.platform == "darwin":
-                if platform.machine() == "arm64":
-                    url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz"
-                else:
-                    url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz"
-                urllib.request.urlretrieve(url, "cloudflared.tgz")
-                subprocess.run(["tar", "-xzf", "cloudflared.tgz"])
+    if not os.path.exists("cloudflared"):
+        print("Downloading cloudflared...")
+        if sys.platform == "darwin":
+            if platform.machine() == "arm64":
+                url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz"
             else:
-                url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
-                urllib.request.urlretrieve(url, "cloudflared")
-            subprocess.run(["chmod", "+x", "cloudflared"])
-
-        time.sleep(2)  # Allow Gradio server to bind port first
-        proc = subprocess.Popen(["./cloudflared", "tunnel", "--url", f"http://127.0.0.1:{port}"],
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-
-        start = time.time()
-        while time.time() - start < 15:
-            line = proc.stdout.readline()
-            if not line:
-                break
-            match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
-            if match and 'api.trycloudflare.com' not in match.group(0):
-                tunnel_url = match.group(0)
-                print("\n" + "=" * 65)
-                print(f"🚀 FAST TEMPORARY CLOUDFLARE LINK: {tunnel_url}")
-                print("=" * 65 + "\n")
-                break
-
-    t = threading.Thread(target=_tunnel_thread, daemon=True)
-    t.start()
+                url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz"
+            urllib.request.urlretrieve(url, "cloudflared.tgz")
+            subprocess.run(["tar", "-xzf", "cloudflared.tgz"])
+        else:
+            url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
+            urllib.request.urlretrieve(url, "cloudflared")
+        subprocess.run(["chmod", "+x", "cloudflared"])
+    subprocess.Popen(["./cloudflared", "tunnel", "--no-autoupdate", "run", "--token", token])
 
 if __name__ == "__main__":
-    start_trycloudflare_tunnel(cmd_args.port)
     demo.queue(20)
-    demo.launch(server_name=cmd_args.host, server_port=cmd_args.port, share=False, allowed_paths=["outputs"])
+    demo.launch(server_name=cmd_args.host, server_port=cmd_args.port, share=True)
