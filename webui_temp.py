@@ -514,41 +514,42 @@ def start_trycloudflare_tunnel(port):
     import urllib.request
     import re
     import time
+    import threading
 
-    if not os.path.exists("cloudflared"):
-        print("Downloading cloudflared...")
-        if sys.platform == "darwin":
-            if platform.machine() == "arm64":
-                url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz"
+    def _tunnel_thread():
+        if not os.path.exists("cloudflared"):
+            print("Downloading cloudflared...")
+            if sys.platform == "darwin":
+                if platform.machine() == "arm64":
+                    url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz"
+                else:
+                    url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz"
+                urllib.request.urlretrieve(url, "cloudflared.tgz")
+                subprocess.run(["tar", "-xzf", "cloudflared.tgz"])
             else:
-                url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz"
-            urllib.request.urlretrieve(url, "cloudflared.tgz")
-            subprocess.run(["tar", "-xzf", "cloudflared.tgz"])
-        else:
-            url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
-            urllib.request.urlretrieve(url, "cloudflared")
-        subprocess.run(["chmod", "+x", "cloudflared"])
+                url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
+                urllib.request.urlretrieve(url, "cloudflared")
+            subprocess.run(["chmod", "+x", "cloudflared"])
 
-    proc = subprocess.Popen(["./cloudflared", "tunnel", "--url", f"http://127.0.0.1:{port}"],
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        time.sleep(2)  # Allow Gradio server to bind port first
+        proc = subprocess.Popen(["./cloudflared", "tunnel", "--url", f"http://127.0.0.1:{port}"],
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
-    tunnel_url = None
-    start = time.time()
-    while time.time() - start < 12:
-        line = proc.stdout.readline()
-        if not line:
-            break
-        match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
-        if match and 'api.trycloudflare.com' not in match.group(0):
-            tunnel_url = match.group(0)
-            break
+        start = time.time()
+        while time.time() - start < 15:
+            line = proc.stdout.readline()
+            if not line:
+                break
+            match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
+            if match and 'api.trycloudflare.com' not in match.group(0):
+                tunnel_url = match.group(0)
+                print("\n" + "=" * 65)
+                print(f"🚀 FAST TEMPORARY CLOUDFLARE LINK: {tunnel_url}")
+                print("=" * 65 + "\n")
+                break
 
-    if tunnel_url:
-        print("\n" + "=" * 65)
-        print(f"🚀 FAST TEMPORARY CLOUDFLARE LINK: {tunnel_url}")
-        print("=" * 65 + "\n")
-    else:
-        print("Cloudflare quick tunnel starting in background...")
+    t = threading.Thread(target=_tunnel_thread, daemon=True)
+    t.start()
 
 if __name__ == "__main__":
     start_trycloudflare_tunnel(cmd_args.port)
