@@ -508,10 +508,13 @@ with gr.Blocks(title="Riyanjaly & Ansh Media Voice Studio", theme=theme, css=APP
     
     custom_voice_btn.click(toggle_cv, inputs=[cv_state], outputs=[cv_state, custom_voice_tab])
 
-def start_cloudflare_tunnel(token):
+def start_trycloudflare_tunnel(port):
     import sys
     import platform
     import urllib.request
+    import re
+    import time
+
     if not os.path.exists("cloudflared"):
         print("Downloading cloudflared...")
         if sys.platform == "darwin":
@@ -525,8 +528,29 @@ def start_cloudflare_tunnel(token):
             url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
             urllib.request.urlretrieve(url, "cloudflared")
         subprocess.run(["chmod", "+x", "cloudflared"])
-    subprocess.Popen(["./cloudflared", "tunnel", "--no-autoupdate", "run", "--token", token])
+
+    proc = subprocess.Popen(["./cloudflared", "tunnel", "--url", f"http://127.0.0.1:{port}"],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+    tunnel_url = None
+    start = time.time()
+    while time.time() - start < 12:
+        line = proc.stdout.readline()
+        if not line:
+            break
+        match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
+        if match and 'api.trycloudflare.com' not in match.group(0):
+            tunnel_url = match.group(0)
+            break
+
+    if tunnel_url:
+        print("\n" + "=" * 65)
+        print(f"🚀 FAST TEMPORARY CLOUDFLARE LINK: {tunnel_url}")
+        print("=" * 65 + "\n")
+    else:
+        print("Cloudflare quick tunnel starting in background...")
 
 if __name__ == "__main__":
+    start_trycloudflare_tunnel(cmd_args.port)
     demo.queue(20)
-    demo.launch(server_name=cmd_args.host, server_port=cmd_args.port, share=True)
+    demo.launch(server_name=cmd_args.host, server_port=cmd_args.port, share=False, allowed_paths=["outputs"])
